@@ -10,8 +10,6 @@ database.json
 *.db
 *.sqlite
 res/
-img/
-imgs/
 image/
 images/
 
