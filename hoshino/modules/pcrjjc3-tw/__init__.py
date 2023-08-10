@@ -116,7 +116,6 @@ lck = Lock()
 captcha_lck = Lock()
 qlck = Lock()
 olck = Lock()
-# slck = Lock()
 
 # 数据库对象初始化
 JJCH = JJCHistoryStorage()
@@ -163,7 +162,10 @@ client_1cx, client_2cx, acinfo_1cx, acinfo_2cx = get_client()
 
 # 变为登录状态
 loop = asyncio.get_event_loop()
-loop.run_until_complete(loop.create_task(client_2cx.login()))
+if client_1cx is not None:
+    loop.run_until_complete(loop.create_task(client_1cx.login()))
+if client_2cx is not None:
+    loop.run_until_complete(loop.create_task(client_2cx.login()))
 
 
 # 最开始的查询，没有用到异步并发
@@ -265,7 +267,6 @@ def save_binds():
         dump(root, fp, indent=4)
 
 
-# version2
 def save_observer():
     with open(config_2, 'w') as fp:
         dump(root_2, fp, indent=4)
@@ -323,7 +324,6 @@ async def on_arena_bind(bot, ev):
 
 
 # uid是qq id才是游戏uid
-# 竞技场关注 version2
 @sv.on_rex(r'^竞技场关注\s*(\d)\s*(\d{9})$')  # 支持匹配空格，空格可有可无且长度无限制
 async def on_arena_observer(bot, ev):
     global binds, olck, observer
@@ -362,7 +362,6 @@ async def on_arena_observer(bot, ev):
     await bot.finish(ev, msg, at_sender=True)
 
 
-# version5.1  查询全部整合在一起
 @sv.on_rex(r'^(竞技场查询|jjccx|看看|关注查询)\s*(\d)?\s*(\d{9})?$')
 async def on_query_arena(bot, ev):
     global binds, lck, observer
@@ -414,7 +413,6 @@ async def on_query_arena(bot, ev):
                 cx = binds[uid]['cx']
                 cx_name = _get_cx_name(cx)
         try:
-            # print("cx:" + cx + "id" + id)
             res = await query(cx, id)
 
             if res == 'lack shareprefs':
@@ -498,7 +496,6 @@ async def send_parena_history(bot, ev):
         await bot.finish(ev, msg, at_sender=True)
 
 
-# version4.1
 @sv.on_fullmatch('关注列表')
 async def creat_observer_list(bot, ev):
     global observer, cache

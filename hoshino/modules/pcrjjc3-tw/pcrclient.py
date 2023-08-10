@@ -183,7 +183,7 @@ class pcrclient:
             self.headers['PARAM'] = sha1((self.udid + apiurl + b64encode(packed).decode('utf8') + str(self.viewer_id)).encode('utf8')).hexdigest()
 
             async with aiohttp.ClientSession(headers=self.headers) as session:
-                async with session.post(self.apiroot + apiurl, data=crypted) as resp:
+                async with session.post(self.apiroot + apiurl, proxy=self.proxy, data=crypted) as resp:
                     response = await resp.read()
             response = self.unpack(response)[0]
 
@@ -201,13 +201,6 @@ class pcrclient:
                 code = data_headers['result_code']
                 print(f'pcrclient: {apiurl} api failed code = {code}, {data}')
                 raise ApiException(data['message'], data['status'])
-
-            # print(f'pcrclient: {apiurl} api called')
-            # 生成角色信息json文件，用于调试
-            # json_data = json.dumps(data, indent=4, ensure_ascii=False)
-            # data_path =  Path(__file__).parent / 'res_data.json'
-            # data_path.write_text(json_data, encoding="utf-8")
-
             return data
         except Exception as e:
             data = data['server_error']
