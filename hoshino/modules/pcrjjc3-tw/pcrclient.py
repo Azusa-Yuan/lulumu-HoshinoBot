@@ -85,9 +85,10 @@ class pcrclient:
         # 字符中的一个，然后将其转换为字节的整数值。然后，for _ in range(32) 循环用于生成32个这样的随机字节。
         return bytes([ord('0123456789abcdef'[randint(0, 15)]) for _ in range(32)])
 
-    def updateVersion(self, verison):
-        print("当前版本为" + self.headers["APP-VER"])
+    async def updateVersion(self, verison):
+        print("当前版本为" + self.headers["APP-VER"] + "更改为" + verison)
         self.headers["APP-VER"] = verison
+        await self.login()
 
     def _getiv(self) -> bytes:
         return self.udid.replace('-', '')[:16].encode('utf8')
@@ -183,9 +184,15 @@ class pcrclient:
             packed, crypted = self.pack(request, key)
             self.headers['PARAM'] = sha1((self.udid + apiurl + b64encode(packed).decode('utf8') + str(self.viewer_id)).encode('utf8')).hexdigest()
 
-            async with aiohttp.ClientSession(headers=self.headers) as session:
-                async with session.post(self.apiroot + apiurl, proxy=self.proxy, data=crypted) as resp:
-                    response = await resp.read()
+            if len(self.proxy) > 1:
+                async with aiohttp.ClientSession(headers=self.headers) as session:
+                    async with session.post(self.apiroot + apiurl, proxy=self.proxy, data=crypted) as resp:
+                        response = await resp.read()
+            else:
+                async with aiohttp.ClientSession(headers=self.headers) as session:
+                    async with session.post(self.apiroot + apiurl, data=crypted) as resp:
+                        response = await resp.read()
+
             response = self.unpack(response)[0]
 
             data_headers = response['data_headers']

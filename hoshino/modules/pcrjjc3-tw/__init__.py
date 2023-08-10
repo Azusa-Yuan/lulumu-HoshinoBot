@@ -1,7 +1,7 @@
 from json import load, dump
 from nonebot import get_bot, on_command, CommandSession
 from hoshino import priv
-from hoshino.typing import NoticeSession, MessageSegment
+from hoshino.typing import NoticeSession, MessageSegment, CQEvent
 from .pcrclient import pcrclient, ApiException, get_headers
 from asyncio import Lock
 from os.path import dirname, join, exists
@@ -203,14 +203,14 @@ async def query_single(cx: str, id: str, delay: float):
         return 'lack shareprefs'
 
     try:
-        res = await client_2cx.callapi_batch('/profile/get_profile', {
+        res = await client.callapi_batch('/profile/get_profile', {
             'target_viewer_id': int(cx + id)
         }, delay=delay)
     except Exception as e:
         # 发生错误返回空
         try:
-            await client_2cx.login()
-            res = (await client_2cx.callapi('/profile/get_profile', {
+            await client.login()
+            res = (await client.callapi('/profile/get_profile', {
                 'target_viewer_id': int(cx + id)
             }))
         except Exception as e:
@@ -725,6 +725,26 @@ async def send_arena_sub_status(bot, ev):
     当前竞技场bindID：{info['id']}
     竞技场bind：{'开启' if info['arena_on'] else '关闭'}
     公主竞技场bind：{'开启' if info['grand_arena_on'] else '关闭'}''', at_sender=True)
+
+
+@sv.on_prefix('更新版本')
+async def updateVersion(bot, ev: CQEvent):
+    if not priv.check_priv(ev, priv.SUPERUSER):
+        await bot.send(ev, '抱歉，您的权限不足，只有bot主人才能进行该操作！')
+        return
+    try:
+        version = ev.message.extract_plain_text()
+        if client_1cx is not None:
+            await client_1cx.updateVersion(version)
+        if client_2cx is not None:
+            await client_2cx.updateVersion(version)
+        header_path = os.path.join(os.path.dirname(__file__), 'headers.json')
+        with open(header_path, 'r', encoding='UTF-8') as f:
+            defaultHeaders = json.load(f)
+        defaultHeaders["APP-VER"] = version
+        await bot.finish(ev, "更新版本成功", at_sender=True)
+    except Exception as e:
+        await bot.finish(ev, f'更新版本出错，{e}', at_sender=True)
 
 
 @sv.scheduled_job('interval', seconds=40)
