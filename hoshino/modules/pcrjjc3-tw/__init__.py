@@ -13,12 +13,10 @@ from .create_img import generate_info_pic, generate_support_pic, _get_cx_name
 from hoshino.util import pic2b64
 import time
 import requests
-import os
 import json
 from .jjchistory import *
 from hoshino.util import FreqLimiter
 import asyncio
-import aiohttp
 # 减少warning
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
@@ -503,7 +501,9 @@ async def creat_observer_list(bot, ev):
     if uid not in observer:
         await bot.send(ev, '您没有关注任何玩家', at_sender=True)
         return
-    person_observer = observer[uid]['id']
+    observer_uid = observer[uid]['id']
+    observer_cx = observer[uid]['cx']
+    person_observer = [observer_cx[i] + observer_uid[i] for i in range(len(observer_uid))]
     msg = ''
     for pos, uid in enumerate(person_observer):
         msg += '\r\n'
@@ -581,16 +581,6 @@ async def change_arena_sub(bot, ev):
             binds[uid][key] = ev['match'].group(1) == '启用'
             save_binds()
             await bot.finish(ev, f'{ev["match"].group(0)}成功', at_sender=True)
-
-
-# # @on_command('/pcrval')
-# async def validate(session):
-#     global binds, lck, validate
-#     _, _, _, _, acinfo_1cx, acinfo_2cx, acinfo_3cx, acinfo_4cx = get_client()
-#     if session.ctx['user_id'] == acinfo_1cx['admin'] or session.ctx['user_id'] == acinfo_2cx['admin'] \
-#         or session.ctx['user_id'] == acinfo_3cx['admin'] or session.ctx['user_id'] == acinfo_4cx['admin']:
-#         validate = session.ctx['message'].extract_plain_text().strip()[8:]
-#         captcha_lck.release()
 
 
 def delete_arena(uid):
