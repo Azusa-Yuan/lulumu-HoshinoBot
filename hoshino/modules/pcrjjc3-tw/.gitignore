@@ -1,3 +1,5 @@
 *.json
 *.xml
 __pycache__/*
+test.*
+/.idea/

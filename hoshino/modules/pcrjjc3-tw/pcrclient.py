@@ -13,7 +13,7 @@ import json
 import aiohttp
 from hoshino.aiorequests import post
 import asyncio
-# import time
+
 # 获取headers
 def get_headers():
     app_ver = get_ver()
@@ -84,6 +84,10 @@ class pcrclient:
         # 在这个表达式中，ord('0123456789abcdef'[randint(0, 15)]) 随机选择了 '0123456789abcdef'
         # 字符中的一个，然后将其转换为字节的整数值。然后，for _ in range(32) 循环用于生成32个这样的随机字节。
         return bytes([ord('0123456789abcdef'[randint(0, 15)]) for _ in range(32)])
+
+    def updateVersion(self, verison):
+        print("当前版本为" + self.headers["APP-VER"])
+        self.headers["APP-VER"] = verison
 
     def _getiv(self) -> bytes:
         return self.udid.replace('-', '')[:16].encode('utf8')
@@ -157,9 +161,6 @@ class pcrclient:
                 code = data_headers['result_code']
                 print(f'pcrclient: {apiurl} api failed code = {code}, {data}')
                 raise ApiException(data['message'], data['status'])
-            # end_time = time.time()
-            # print("解析时间 ",float(end_time-start_time)*1000)
-            # print(f'pcrclient: {apiurl} api called')
 
             #生成角色信息json文件，用于调试
             # json_data = json.dumps(data, indent=4, ensure_ascii=False)
@@ -202,6 +203,7 @@ class pcrclient:
                 print(f'pcrclient: {apiurl} api failed code = {code}, {data}')
                 raise ApiException(data['message'], data['status'])
             return data
+
         except Exception as e:
             data = data['server_error']
             code = data_headers['result_code']

@@ -47,6 +47,7 @@ sv_help = '''
 
 '''.strip()
 
+# 限制查询的频率
 lmt = FreqLimiter(2)
 # 启动时的两个文件，不存在就创建
 # headers文件
