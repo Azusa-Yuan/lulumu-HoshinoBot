@@ -11,7 +11,6 @@ import re
 import os
 import json
 import aiohttp
-from hoshino.aiorequests import post
 import asyncio
 
 # 获取headers
@@ -58,9 +57,9 @@ class pcrclient:
     @staticmethod
     def _makemd5(str) -> str:
         return md5((str + 'r!I@nt8e5i=').encode('utf8')).hexdigest()
-    
+
     def __init__(self, udid, short_udid, viewer_id, platform, proxy):
-        
+
         self.viewer_id = viewer_id
         self.short_udid = short_udid
         self.udid = udid
@@ -127,62 +126,17 @@ class pcrclient:
     def _ivstring() -> str:
         return ''.join([choice(pcrclient.alphabet) for _ in range(32)])
 
-    async def callapi(self, apiurl: str, request: dict, noerr: bool = False):
+    async def callapi(self, apiurl: str, request: dict, noerr: bool = False, delay: float = 0):
+        if delay > 1:
+            await asyncio.sleep(delay/1000)
         key = pcrclient.createkey()
 
         try:
             if self.viewer_id is not None:
                 request['viewer_id'] = b64encode(self.encrypt(str(self.viewer_id), key))
-
             packed, crypted = self.pack(request, key)
             self.headers['PARAM'] = sha1((self.udid + apiurl + b64encode(packed).decode('utf8') + str(self.viewer_id)).encode('utf8')).hexdigest()
             self.headers['SHORT-UDID'] = pcrclient._encode(self.short_udid)
-
-            resp = await post(self.apiroot + apiurl,
-                data = crypted,
-                headers = self.headers,
-                timeout = 5,
-                proxies = self.proxy,
-                verify = False)
-            response = await resp.content
-
-            response = self.unpack(response)[0]
-
-            data_headers = response['data_headers']
-
-            if 'viewer_id' in data_headers:
-                self.viewer_id = data_headers['viewer_id']
-
-            if 'required_res_ver' in data_headers:
-                self.headers['RES-VER'] = data_headers['required_res_ver']
-
-            data = response['data']
-            if not noerr and 'server_error' in data:
-                data = data['server_error']
-                code = data_headers['result_code']
-                print(f'pcrclient: {apiurl} api failed code = {code}, {data}')
-                raise ApiException(data['message'], data['status'])
-
-            #生成角色信息json文件，用于调试
-            # json_data = json.dumps(data, indent=4, ensure_ascii=False)
-            # data_path =  Path(__file__).parent / 'res_data.json'
-            # data_path.write_text(json_data, encoding="utf-8")
-
-            return data
-        except Exception as e:
-            self.shouldLogin = True
-            raise
-
-    #并发使用 在测试
-    async def callapi_batch(self, apiurl: str, request: dict, noerr: bool = False, delay: float = 0):
-        await asyncio.sleep(delay/1000)
-        key = pcrclient.createkey()
-
-        try:
-            if self.viewer_id is not None:
-                request['viewer_id'] = b64encode(self.encrypt(str(self.viewer_id), key))
-            packed, crypted = self.pack(request, key)
-            self.headers['PARAM'] = sha1((self.udid + apiurl + b64encode(packed).decode('utf8') + str(self.viewer_id)).encode('utf8')).hexdigest()
 
             if len(self.proxy) > 1:
                 async with aiohttp.ClientSession(headers=self.headers) as session:
@@ -211,11 +165,14 @@ class pcrclient:
                 raise ApiException(data['message'], data['status'])
             return data
 
+            # 生成角色信息json文件，用于调试
+            # json_data = json.dumps(data, indent=4, ensure_ascii=False)
+            # data_path =  Path(__file__).parent / 'res_data.json'
+            # data_path.write_text(json_data, encoding="utf-8")
+
         except Exception as e:
-            data = data['server_error']
-            code = data_headers['result_code']
-            print(f'pcrclient: {apiurl} api failed code = {code}, {data}')
             await self.login()
+            raise
 
     async def login(self):
 

@@ -203,7 +203,7 @@ async def query_single(cx: str, id: str, delay: float):
         return 'lack shareprefs'
 
     try:
-        res = await client.callapi_batch('/profile/get_profile', {
+        res = await client.callapi('/profile/get_profile', {
             'target_viewer_id': int(cx + id)
         }, delay=delay)
     except Exception as e:
