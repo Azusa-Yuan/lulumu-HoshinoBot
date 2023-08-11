@@ -30,6 +30,8 @@ def get_data():
 
 word_list = get_data()
 lmt = FreqLimiter(14400)
+
+# 可在此配置要进行发病限制的群
 group_list = {"852670048"}
 
 
