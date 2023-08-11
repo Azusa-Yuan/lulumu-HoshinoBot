@@ -167,7 +167,6 @@ if client_2cx is not None:
     loop.run_until_complete(loop.create_task(client_2cx.login()))
 
 
-# 最开始的查询，没有用到异步并发
 async def query(cx: str, id: str):
     global client_1cx, client_2cx
     if cx == '1':
@@ -301,9 +300,17 @@ async def pcrjjc_pause(bot, ev):
 async def on_arena_bind(bot, ev):
     global binds, lck
 
-    if ev['match'].group(1) == '1':
-        await bot.send(ev, '服务器选择错误！支持的服务器有2/3/4')
+    if ev['match'].group(1) not in ['1', '2', '3', '4']:
+        await bot.send(ev, '服务器选择错误！')
         return
+    if ev['match'].group(1) == '1':
+        if client_1cx is None:
+            await bot.send(ev, '服务器选择错误！支持的服务器有2/3/4')
+            return
+    elif client_2cx is None:
+        await bot.send(ev, '服务器选择错误！支持的服务器有1')
+        return
+
     async with lck:
         uid = str(ev['user_id'])
         last = binds[uid] if uid in binds else None
@@ -327,9 +334,17 @@ async def on_arena_bind(bot, ev):
 async def on_arena_observer(bot, ev):
     global binds, olck, observer
 
-    if ev['match'].group(1) == '1':
-        await bot.send(ev, '服务器选择错误！支持的服务器有2/3/4')
+    if ev['match'].group(1) not in ['1', '2', '3', '4']:
+        await bot.send(ev, '服务器选择错误！')
         return
+    if ev['match'].group(1) == '1':
+        if client_1cx is None:
+            await bot.send(ev, '服务器选择错误！支持的服务器有2/3/4')
+            return
+    elif client_2cx is None:
+        await bot.send(ev, '服务器选择错误！支持的服务器有1')
+        return
+
     async with olck:
         uid = str(ev['user_id'])
         id = ev['match'].group(2)
@@ -527,7 +542,7 @@ async def on_query_arena_all(bot, ev):
 
     async with lck:
         if id == None and cx == None:
-            # at玩家会发生什么事情
+            # at群友会发生什么事情
             for message in ev.message:
                 if message.type == 'at':
                     uid = str(message.data['qq'])
@@ -741,7 +756,8 @@ async def updateVersion(bot, ev: CQEvent):
         header_path = os.path.join(os.path.dirname(__file__), 'headers.json')
         with open(header_path, 'r', encoding='UTF-8') as f:
             defaultHeaders = json.load(f)
-        defaultHeaders["APP-VER"] = version
+            defaultHeaders["APP-VER"] = version
+            json.dump(default_headers, f, indent=4, ensure_ascii=False)
         await bot.finish(ev, "更新版本成功", at_sender=True)
     except Exception as e:
         await bot.finish(ev, f'更新版本出错，{e}', at_sender=True)
