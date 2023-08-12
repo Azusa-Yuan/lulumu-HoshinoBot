@@ -25,20 +25,21 @@ sv = Service(
 
 )
 
-config = {}
+husband = {}
 special = {}
 cfgpath = os.path.join(os.path.dirname(__file__), 'config.yaml')
 if os.path.exists(cfgpath):
     with open(cfgpath, 'r', encoding='utf-8') as f:
         config = yaml.load(f, Loader=yaml.SafeLoader)
 
-
 sppath = os.path.join(os.path.dirname(__file__), 'config.json')
 if os.path.exists(sppath):
     with open(sppath) as f:
         special = json.load(f)
 
-time_interval = 60*60*24*30
+time_interval = 60 * 60 * 24 * 30
+
+
 def get_pig_list(all_list):
     now = int(time.time())
     id_list = []
@@ -47,11 +48,13 @@ def get_pig_list(all_list):
             id_list.append(member_list['user_id'])
     return id_list
 
+
 def get_member_list(all_list):
     id_list = []
     for member_list in all_list:
         id_list.append(member_list['user_id'])
     return id_list
+
 
 async def download_avatar(user_id: str) -> bytes:
     url = f"http://q1.qlogo.cn/g?b=qq&nk={user_id}&s=640"
@@ -60,6 +63,7 @@ async def download_avatar(user_id: str) -> bytes:
         url = f"http://q1.qlogo.cn/g?b=qq&nk={user_id}&s=100"
         data = await download_url(url)
     return data
+
 
 async def download_url(url: str) -> bytes:
     async with httpx.AsyncClient() as client:
@@ -72,35 +76,39 @@ async def download_url(url: str) -> bytes:
             except Exception as e:
                 print(f"Error downloading {url}, retry {i}/3: {str(e)}")
 
-async def get_wife_info(member_info,qqid):  
+
+async def get_wife_info(member_info, qqid):
     img = await download_avatar(qqid)
     base64_str = base64.b64encode(img).decode()
-    avatar =  'base64://' + base64_str
+    avatar = 'base64://' + base64_str
     member_name = (member_info["card"] or member_info["nickname"])
     result = f'''\n你今天的群友老婆是:
 [CQ:image,file={avatar}]
 {member_name}({qqid})'''
     return result
 
-async def get_husband_info(member_info,qqid):
+
+async def get_husband_info(member_info, qqid):
     img = await download_avatar(qqid)
     base64_str = base64.b64encode(img).decode()
-    avatar =  'base64://' + base64_str
+    avatar = 'base64://' + base64_str
     member_name = (member_info["card"] or member_info["nickname"])
     result = f'''\n你每天的群友老公是:
 [CQ:image,file={avatar}]
 {member_name}({qqid})'''
     return result
 
+
 async def get_pig_info(member_info, qqid, k):
     img = await download_avatar(qqid)
     base64_str = base64.b64encode(img).decode()
-    avatar =  'base64://' + base64_str
+    avatar = 'base64://' + base64_str
     member_name = (member_info["card"] or member_info["nickname"])
     result = f'''\n今日的{k}号猪头群友是:
 [CQ:image,file={avatar}]
 {member_name}({qqid})'''
     return result
+
 
 def load_group_config(group_id: str):
     filename = os.path.join(os.path.dirname(__file__), 'config', f'{group_id}.json')
@@ -111,7 +119,8 @@ def load_group_config(group_id: str):
     except:
         return None
 
-def load_pig_config() :
+
+def load_pig_config():
     filename = os.path.join(os.path.dirname(__file__), f'pig.json')
     try:
         with open(filename, encoding='utf8') as f:
@@ -120,28 +129,28 @@ def load_pig_config() :
     except:
         return None
 
-def write_pig_config(group_id: str,pig_id,date:str,config) :
+
+def write_pig_config(group_id: str, pig_id, date: str, config):
     filename = os.path.join(os.path.dirname(__file__), f'pig.json')
     if config == None:
         config = {}
 
     config[group_id] = {
-        "date":date,
-        "pig_id":pig_id,
+        "date": date,
+        "pig_id": pig_id,
     }
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(config, f, ensure_ascii=False)
 
 
-def write_group_config(group_id: str,link_id:str,wife_id:str,date:str,config) :
+def write_group_config(group_id: str, link_id: str, wife_id: str, date: str, config):
     config_file = os.path.join(os.path.dirname(__file__), 'config', f'{group_id}.json')
-    if config != None:    
-        config[link_id] = [wife_id,date]
+    if config != None:
+        config[link_id] = [wife_id, date]
     else:
-        config = {link_id:[wife_id,date]}
+        config = {link_id: [wife_id, date]}
     with open(config_file, 'w', encoding='utf-8') as f:
         json.dump(config, f, ensure_ascii=False)
-
 
 
 @sv.on_fullmatch('今日老婆')
@@ -178,23 +187,23 @@ async def dailywife(bot, ev: CQEvent):
                             del config[record_id]
 
             special_list = list(special.keys())
-            if user_id in special_list:
-                 if groupid in special[user_id]['groupid']:
-                        index = special[user_id]['groupid'].index(groupid)
-                        wife_id = special[user_id]['wife_id'][index]
-                        random = False
-            
+            if str(user_id) in special_list:
+                if groupid in special[str(user_id)]["groupid"]:
+                    index = special[str(user_id)]["groupid"].index(groupid)
+                    wife_id = special[str(user_id)]["wife_id"][index]
+                    random = False
+
             if random:
                 for special_id in special:
-                    if groupid in special[special_id]['groupid']:
-                        index = special[special_id]['groupid'].index(groupid)
-                        special_wife = special[special_id]['wife_id'][index]
+                    if groupid in special[special_id]["groupid"]:
+                        index = special[special_id]["groupid"].index(groupid)
+                        special_wife = special[special_id]["wife_id"][index]
                         if special_wife in id_list:
                             id_list.remove(special_wife)
 
                 # id_list.remove(bot_id)
                 if user_id in id_list:
-                    id_list.remove(user_id)            
+                    id_list.remove(user_id)
                 wife_id = choice(id_list)
 
         write_group_config(groupid, user_id, wife_id, today, config)
@@ -206,15 +215,15 @@ async def dailywife(bot, ev: CQEvent):
 
 @sv.on_fullmatch('今日老公')
 async def dailyhusband(bot, ev: CQEvent):
-    if config is None:
+    if husband is None:
         return
 
     if random.random() < 0.6:
         return 0
-    husband_id = config["husband"]
+    husband_id = husband["husband"]
     groupid = ev.group_id
     member_info = await bot.get_group_member_info(group_id=groupid, user_id=husband_id)
-    result = await get_husband_info(member_info,husband_id)
+    result = await get_husband_info(member_info, husband_id)
     await bot.send(ev, result, at_sender=True)
 
 
@@ -245,7 +254,6 @@ async def dailyhusband(bot, ev: CQEvent):
     k = random.randint(0, length - 1)
     pig_id = config[str(groupid)]["pig_id"][k]
 
-
     member_info = await bot.get_group_member_info(group_id=groupid, user_id=pig_id)
     result = await get_pig_info(member_info, pig_id, k)
-    await bot.send(ev,result, at_sender=True)
+    await bot.send(ev, result, at_sender=True)
