@@ -131,6 +131,7 @@ def judge_file(cx):
 
 # 获取配置文件
 def get_client():
+    global client_1cx, client_2cx, acinfo_1cx, acinfo_2cx
     acinfo_1cx = decryptxml(join(curpath, '1cx_tw.sonet.princessconnect.v2.playerprefs.xml')) if judge_file(1) else {
         'admin': ''}
     client_1cx = pcrclient(acinfo_1cx['UDID'], acinfo_1cx['SHORT_UDID_lowBits'], acinfo_1cx['VIEWER_ID_lowBits'],
@@ -171,7 +172,6 @@ except Exception as e:
     pass
 
 
-
 async def query(cx: str, id: str):
     global client_1cx, client_2cx
     if cx == '1':
@@ -188,6 +188,7 @@ async def query(cx: str, id: str):
                 'target_viewer_id': int(cx + id)
             }))
         except Exception as e:
+            # 进行一次登录重试
             await client.login()
             res = (await client.callapi('/profile/get_profile', {
                 'target_viewer_id': int(cx + id)
@@ -546,7 +547,7 @@ async def on_query_arena_all(bot, ev):
     uid = str(ev['user_id'])
 
     async with lck:
-        if id == None and cx == None:
+        if id is None and cx is None:
             # at群友会发生什么事情
             for message in ev.message:
                 if message.type == 'at':
@@ -555,7 +556,7 @@ async def on_query_arena_all(bot, ev):
                     await bot.finish(ev, '该群友还未bind竞技场', at_sender=True)
                     return
 
-            if not uid in binds:
+            if uid not in binds:
                 await bot.finish(ev, '您还未bind竞技场', at_sender=True)
                 return
             else:
@@ -631,7 +632,7 @@ async def delete_arena_sub(bot, ev):
     elif len(ev.message) == 1 and ev.message[0].type == 'text' and not ev.message[0].data['text']:
         uid = str(ev['user_id'])
 
-    if not uid in binds:
+    if uid not in binds:
         await bot.finish(ev, '未bind竞技场', at_sender=True)
         return
 
@@ -650,7 +651,7 @@ async def delete_arena_sub(bot, ev):
     robj = ev['match']
     uid = str(robj.group(1))
 
-    if not uid in binds:
+    if uid not in binds:
         await bot.finish(ev, '未bind竞技场', at_sender=True)
 
     async with lck:
@@ -736,7 +737,7 @@ async def send_arena_sub_status(bot, ev):
     global binds, lck
     uid = str(ev['user_id'])
 
-    if not uid in binds:
+    if uid not in binds:
         await bot.send(ev, '您还未bind竞技场', at_sender=True)
     else:
         info = binds[uid]
@@ -883,19 +884,19 @@ async def on_arena_schedule():
                 if int(res[3]) - int(last[3]) > 1800:
                     await bot.send_group_msg(
                         group_id=int(info['gid'][i]),
-                        message=f'[CQ:at,qq={info["uid"]}] 您的关注{i+1}已上线'
+                        message=f'[CQ:at,qq={info["uid"]}] 您的关注{i + 1}已上线'
                     )
 
                 if res[0] != last[0]:
                     await bot.send_group_msg(
                         group_id=int(info['gid'][i]),
-                        message=f'[CQ:at,qq={info["uid"]}] 您的关注{i+1} jjc：{last[0]}->{res[0]}'
+                        message=f'[CQ:at,qq={info["uid"]}] 您的关注{i + 1} jjc：{last[0]}->{res[0]}'
                     )
 
                 if res[1] != last[1]:
                     await bot.send_group_msg(
                         group_id=int(info['gid'][i]),
-                        message=f'[CQ:at,qq={info["uid"]}] 您的关注{i+1} pjjc：{last[1]}->{res[1]}'
+                        message=f'[CQ:at,qq={info["uid"]}] 您的关注{i + 1} pjjc：{last[1]}->{res[1]}'
                     )
             except ApiException as e:
                 sv.logger.info(f'对台服{info["cx"][i]}服的{info["id"][i]}的检查出错\n{format_exc()}')
