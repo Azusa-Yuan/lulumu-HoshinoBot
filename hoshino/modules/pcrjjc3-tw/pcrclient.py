@@ -45,7 +45,7 @@ def get_ver():
     app_url = 'https://apkimage.io/?q=tw.sonet.princessconnect'
     app_res = requests.get(app_url, timeout=15)
     soup = BeautifulSoup(app_res.text, 'lxml')
-    ver_tmp = soup.find('span', text = re.compile(r'Version：(\d\.\d\.\d)'))
+    ver_tmp = soup.find('span', text=re.compile(r'Version：(\d\.\d\.\d)'))
     app_ver = ver_tmp.text.replace('Version：', '')
     return str(app_ver)
 
@@ -99,7 +99,7 @@ class pcrclient:
     def pack(self, data: object, key: bytes) -> tuple:
         aes = AES.new(key, AES.MODE_CBC, self._getiv())
         packed = packb(data,
-            use_bin_type = False
+            use_bin_type=False
         )
         return packed, aes.encrypt(pad(packed, 16)) + key
 

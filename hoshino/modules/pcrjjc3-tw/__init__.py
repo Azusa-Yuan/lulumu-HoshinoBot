@@ -12,17 +12,14 @@ from .playerpref import decryptxml
 from .create_img import generate_info_pic, generate_support_pic, _get_cx_name
 from hoshino.util import pic2b64
 import time
-import requests
+import aiohttp
 import json
 from .jjchistory import *
 from hoshino.util import FreqLimiter
 import asyncio
-# 减少warning
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 '''
-version：轮询时的post改为协程并发，再次大幅加速，batch_size=4，为测试服务器相对较优的参数，
+轮询时的post改为协程并发，再次大幅加速，batch_size=4，为测试服务器相对较优的参数，
 测试服务器单post收发延迟为500ms，自己服务器的较优参数请自行测试
 
 '''
@@ -108,7 +105,6 @@ cache = {}
 cache_2 = {}  # 专用于关注使用
 cache_time = {}  # 专用于关注使用
 cache_introduction = {}  # 专用于关注使用
-client = None
 
 # 设置异步锁保证线程安全
 lck = Lock()
@@ -167,9 +163,8 @@ try:
         loop.run_until_complete(loop.create_task(client_1cx.login()))
     if client_2cx is not None:
         loop.run_until_complete(loop.create_task(client_2cx.login()))
-except Exception as e:
+except Exception:
     sv.logger.info("pcr客户端登录失败")
-    pass
 
 
 async def query(cx: str, id: str):
@@ -187,7 +182,7 @@ async def query(cx: str, id: str):
             res = (await client.callapi('/profile/get_profile', {
                 'target_viewer_id': int(cx + id)
             }))
-        except Exception as e:
+        except:
             # 进行一次登录重试
             await client.login()
             res = (await client.callapi('/profile/get_profile', {
@@ -211,14 +206,14 @@ async def query_single(cx: str, id: str, delay: float):
         res = await client.callapi('/profile/get_profile', {
             'target_viewer_id': int(cx + id)
         }, delay=delay)
-    except Exception as e:
-        # 发生错误返回空
+    except Exception:
+        # 进行一次重试，发生错误返回空
         try:
             await client.login()
             res = (await client.callapi('/profile/get_profile', {
                 'target_viewer_id': int(cx + id)
             }))
-        except Exception as e:
+        except Exception:
             res = None
     return res
 
@@ -449,9 +444,7 @@ pjjc排名：{res['user_info']["grand_arena_rank"]}
 最后登录：{last_login_str}
 竞技场场次：{res["user_info"]["arena_group"]}
 公主竞技场场次：{res["user_info"]["grand_arena_group"]}''', at_sender=False)
-        except ApiException as e:
-            await bot.finish(ev, f'查询出错，{e}', at_sender=True)
-        except requests.exceptions.ProxyError:
+        except aiohttp.ClientProxyConnectionError:
             await bot.finish(ev, f'查询出错，连接代理失败，请再次尝试', at_sender=True)
         except Exception as e:
             await bot.finish(ev, f'查询出错，{e}', at_sender=True)
@@ -483,7 +476,7 @@ pjjc排名：{res['user_info']["grand_arena_rank"]}
 公主竞技场场次：{res["user_info"]["grand_arena_group"]}''')
     except ApiException as e:
         await session.finish(f'查询出错，{e}')
-    except requests.exceptions.ProxyError:
+    except aiohttp.ClientProxyConnectionError:
         await session.finish(f'查询出错，连接代理失败，请再次尝试')
     except Exception as e:
         await session.finish(f'查询出错，{e}')
@@ -491,9 +484,7 @@ pjjc排名：{res['user_info']["grand_arena_rank"]}
 
 @sv.on_prefix('竞技场历史')
 async def send_arena_history(bot, ev):
-    '''
-    竞技场历史记录
-    '''
+    # 竞技场历史记录
     global binds, lck
     uid = str(ev['user_id'])
     if uid not in binds:
@@ -579,11 +570,11 @@ async def on_query_arena_all(bot, ev):
             try:
                 await bot.finish(ev, f"\n{str(result_image)}\n{result_support}", at_sender=True)
                 # await bot.finish(ev, f"\n{str(result_image)}", at_sender=True)
-            except Exception as e:
+            except Exception:
                 sv.logger.info("do nothing")
-        except ApiException as e:
+        except ApiException:
             await bot.finish(ev, f'查询出错，API出错', at_sender=True)
-        except requests.exceptions.ProxyError:
+        except aiohttp.ClientProxyConnectionError:
             await bot.finish(ev, f'查询出错，连接代理失败，请再次尝试', at_sender=True)
         except Exception as e:
             await bot.finish(ev, f'查询出错，{e}', at_sender=True)
@@ -597,7 +588,7 @@ async def change_arena_sub(bot, ev):
     uid = str(ev['user_id'])
 
     async with lck:
-        if not uid in binds:
+        if uid not in binds:
             await bot.send(ev, '您还未bind竞技场', at_sender=True)
         else:
             binds[uid][key] = ev['match'].group(1) == '启用'
@@ -750,6 +741,7 @@ async def send_arena_sub_status(bot, ev):
 
 @sv.on_prefix('更新版本')
 async def updateVersion(bot, ev: CQEvent):
+    global header_path, default_headers
     if not priv.check_priv(ev, priv.SUPERUSER):
         await bot.send(ev, '抱歉，您的权限不足，只有bot主人才能进行该操作！')
         return
@@ -761,8 +753,8 @@ async def updateVersion(bot, ev: CQEvent):
             await client_2cx.updateVersion(version)
         header_path = os.path.join(os.path.dirname(__file__), 'headers.json')
         with open(header_path, 'r', encoding='UTF-8') as f:
-            defaultHeaders = json.load(f)
-            defaultHeaders["APP-VER"] = version
+            default_headers = get_headers()
+            default_headers["APP-VER"] = version
             json.dump(default_headers, f, indent=4, ensure_ascii=False)
         await bot.finish(ev, "更新版本成功", at_sender=True)
     except Exception as e:
