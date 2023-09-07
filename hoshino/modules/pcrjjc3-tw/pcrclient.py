@@ -13,30 +13,32 @@ import json
 import aiohttp
 import asyncio
 
+
 # 获取headers
 def get_headers():
     app_ver = get_ver()
     default_headers = {
-        'Accept-Encoding' : 'gzip',
+        'Accept-Encoding': 'gzip',
         'Content-Type': 'application/octet-stream',
-        'User-Agent' : 'Dalvik/2.1.0 (Linux, U, Android 5.1.1, PCRT00 Build/LMY48Z)',
+        'User-Agent': 'Dalvik/2.1.0 (Linux, U, Android 5.1.1, PCRT00 Build/LMY48Z)',
         'Expect': '100-continue',
-        'X-Unity-Version' : '2018.4.21f1',
-        'APP-VER' : app_ver,
-        'BATTLE-LOGIC-VERSION' : '4',
-        'BUNDLE-VER' : '',
-        'DEVICE' : '2',
-        'DEVICE-ID' : '7b1703a5d9b394e24051d7a5d4818f17',
-        'DEVICE-NAME' : 'OPPO PCRT00',
-        'GRAPHICS-DEVICE-NAME' : 'Adreno (TM) 640',
-        'IP-ADDRESS' : '10.0.2.15',
-        'KEYCHAIN' : '',
-        'LOCALE' : 'Jpn',
-        'PLATFORM-OS-VERSION' : 'Android OS 5.1.1 / API-22 (LMY48Z/rel.se.infra.20200612.100533)',
-        'REGION-CODE' : '',
-        'RES-VER' : '00017004'
+        'X-Unity-Version': '2018.4.21f1',
+        'APP-VER': app_ver,
+        'BATTLE-LOGIC-VERSION': '4',
+        'BUNDLE-VER': '',
+        'DEVICE': '2',
+        'DEVICE-ID': '7b1703a5d9b394e24051d7a5d4818f17',
+        'DEVICE-NAME': 'OPPO PCRT00',
+        'GRAPHICS-DEVICE-NAME': 'Adreno (TM) 640',
+        'IP-ADDRESS': '10.0.2.15',
+        'KEYCHAIN': '',
+        'LOCALE': 'Jpn',
+        'PLATFORM-OS-VERSION': 'Android OS 5.1.1 / API-22 (LMY48Z/rel.se.infra.20200612.100533)',
+        'REGION-CODE': '',
+        'RES-VER': '00017004'
     }
     return default_headers
+
 
 # 获取版本号
 def get_ver():
@@ -47,10 +49,12 @@ def get_ver():
     app_ver = ver_tmp.text.replace('Version：', '')
     return str(app_ver)
 
+
 class ApiException(Exception):
     def __init__(self, message, code):
         super().__init__(message)
         self.code = code
+
 
 class pcrclient:
 
@@ -171,7 +175,6 @@ class pcrclient:
             # data_path.write_text(json_data, encoding="utf-8")
 
         except Exception as e:
-            await self.login()
             raise
 
     async def login(self):

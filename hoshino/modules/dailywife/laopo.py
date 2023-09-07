@@ -1,6 +1,6 @@
 import time
 
-from hoshino import Service, priv, config
+from hoshino import Service
 from hoshino.typing import CQEvent
 import httpx
 import hashlib
@@ -30,7 +30,7 @@ special = {}
 cfgpath = os.path.join(os.path.dirname(__file__), 'config.yaml')
 if os.path.exists(cfgpath):
     with open(cfgpath, 'r', encoding='utf-8') as f:
-        config = yaml.load(f, Loader=yaml.SafeLoader)
+        husband = yaml.load(f, Loader=yaml.SafeLoader)
 
 sppath = os.path.join(os.path.dirname(__file__), 'config.json')
 if os.path.exists(sppath):
@@ -162,7 +162,7 @@ async def dailywife(bot, ev: CQEvent):
     wife_id = None
     today = str(datetime.date.today())
     async with lck:
-        config = load_group_config(groupid)
+        config = load_group_config(str(groupid))
         random = True
 
         if config != None:
@@ -257,3 +257,6 @@ async def dailyhusband(bot, ev: CQEvent):
     member_info = await bot.get_group_member_info(group_id=groupid, user_id=pig_id)
     result = await get_pig_info(member_info, pig_id, k)
     await bot.send(ev, result, at_sender=True)
+
+if __name__ == '__main__':
+    pass

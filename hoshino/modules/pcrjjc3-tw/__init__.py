@@ -161,10 +161,15 @@ client_1cx, client_2cx, acinfo_1cx, acinfo_2cx = get_client()
 
 # 变为登录状态
 loop = asyncio.get_event_loop()
-if client_1cx is not None:
-    loop.run_until_complete(loop.create_task(client_1cx.login()))
-if client_2cx is not None:
-    loop.run_until_complete(loop.create_task(client_2cx.login()))
+try:
+    if client_1cx is not None:
+        loop.run_until_complete(loop.create_task(client_1cx.login()))
+    if client_2cx is not None:
+        loop.run_until_complete(loop.create_task(client_2cx.login()))
+except Exception as e:
+    sv.logger.info("pcr客户端登录失败")
+    pass
+
 
 
 async def query(cx: str, id: str):
