@@ -752,7 +752,7 @@ async def updateVersion(bot, ev: CQEvent):
         if client_2cx is not None:
             await client_2cx.updateVersion(version)
         header_path = os.path.join(os.path.dirname(__file__), 'headers.json')
-        with open(header_path, 'r', encoding='UTF-8') as f:
+        with open(header_path, 'r+', encoding='UTF-8') as f:
             default_headers = get_headers()
             default_headers["APP-VER"] = version
             json.dump(default_headers, f, indent=4, ensure_ascii=False)
