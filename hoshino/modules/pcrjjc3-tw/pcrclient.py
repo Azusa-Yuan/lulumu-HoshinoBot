@@ -5,9 +5,6 @@ from hashlib import md5, sha1
 from Crypto.Util.Padding import unpad, pad
 from base64 import b64encode, b64decode
 from random import choice
-from bs4 import BeautifulSoup
-import requests
-import re
 import os
 import json
 import aiohttp
@@ -16,14 +13,14 @@ import asyncio
 
 # 获取headers
 def get_headers():
-    app_ver = get_ver()
+    # app_ver = get_ver()
     default_headers = {
         'Accept-Encoding': 'gzip',
         'Content-Type': 'application/octet-stream',
         'User-Agent': 'Dalvik/2.1.0 (Linux, U, Android 5.1.1, PCRT00 Build/LMY48Z)',
         'Expect': '100-continue',
         'X-Unity-Version': '2018.4.21f1',
-        'APP-VER': app_ver,
+        'APP-VER': "4.1.0",
         'BATTLE-LOGIC-VERSION': '4',
         'BUNDLE-VER': '',
         'DEVICE': '2',
@@ -40,14 +37,14 @@ def get_headers():
     return default_headers
 
 
-# 获取版本号
-def get_ver():
-    app_url = 'https://apkimage.io/?q=tw.sonet.princessconnect'
-    app_res = requests.get(app_url, timeout=15)
-    soup = BeautifulSoup(app_res.text, 'lxml')
-    ver_tmp = soup.find('span', text=re.compile(r'Version：(\d\.\d\.\d)'))
-    app_ver = ver_tmp.text.replace('Version：', '')
-    return str(app_ver)
+# unable to get correct version
+# def get_ver():
+#     app_url = 'https://apkimage.io/?q=tw.sonet.princessconnect'
+#     app_res = requests.get(app_url, timeout=15)
+#     soup = BeautifulSoup(app_res.text, 'lxml')
+#     ver_tmp = soup.find('span', text=re.compile(r'Version：(\d\.\d\.\d)'))
+#     app_ver = ver_tmp.text.replace('Version：', '')
+#     return str(app_ver)
 
 
 class ApiException(Exception):
@@ -62,6 +59,8 @@ class pcrclient:
     def _makemd5(str) -> str:
         return md5((str + 'r!I@nt8e5i=').encode('utf8')).hexdigest()
 
+    # acinfo_2cx['UDID'], acinfo_2cx['SHORT_UDID_lowBits'], acinfo_2cx['VIEWER_ID_lowBits'],acinfo_2cx[
+    # 'TW_SERVER_ID'], pinfo['proxy']
     def __init__(self, udid, short_udid, viewer_id, platform, proxy):
 
         self.viewer_id = viewer_id
@@ -91,21 +90,23 @@ class pcrclient:
     async def updateVersion(self, verison):
         print("当前版本为" + self.headers["APP-VER"] + "更改为" + verison)
         self.headers["APP-VER"] = verison
-        await self.login()
+        return
 
     def _getiv(self) -> bytes:
         return self.udid.replace('-', '')[:16].encode('utf8')
 
     def pack(self, data: object, key: bytes) -> tuple:
-        aes = AES.new(key, AES.MODE_CBC, self._getiv())
+        # 使用 msgpack 库将数据打包为字节流 默认使用utf-8编码 类似json吧  
         packed = packb(data,
             use_bin_type=False
         )
-        return packed, aes.encrypt(pad(packed, 16)) + key
+        # 字节流数据及加密后的产物
+        return packed, self.encrypt(packed, key)
 
-    def encrypt(self, data: str, key: bytes) -> bytes:
+    def encrypt(self, data: bytes, key: bytes) -> bytes:
+        # 创建AES加密器，使用CBC模式和指定的初始化向量iv
         aes = AES.new(key, AES.MODE_CBC, self._getiv())
-        return aes.encrypt(pad(data.encode('utf8'), 16)) + key
+        return aes.encrypt(pad(data, 16)) + key
 
     def decrypt(self, data: bytes):
         data = b64decode(data.decode('utf8'))
@@ -113,12 +114,11 @@ class pcrclient:
         return aes.decrypt(data[:-32]), data[-32:]
 
     def unpack(self, data: bytes):
-        data = b64decode(data.decode('utf8'))
-        aes = AES.new(data[-32:], AES.MODE_CBC, self._getiv())
-        dec = unpad(aes.decrypt(data[:-32]), 16)
+        data, key = self.decrypt(data)
+        dec = unpad(data, 16)
         return unpackb(dec,
             strict_map_key = False
-        ), data[-32:]
+        ), key
 
     alphabet = '0123456789'
 
@@ -133,17 +133,19 @@ class pcrclient:
     async def callapi(self, apiurl: str, request: dict, noerr: bool = False, delay: float = 0):
         if delay > 1:
             await asyncio.sleep(delay/1000)
+        # 32个随机字节
         key = pcrclient.createkey()
 
         try:
             if self.viewer_id is not None:
-                request['viewer_id'] = b64encode(self.encrypt(str(self.viewer_id), key))
+                request['viewer_id'] = b64encode(self.encrypt(str(self.viewer_id).encode('utf8'), key))
             packed, crypted = self.pack(request, key)
             self.headers['PARAM'] = sha1((self.udid + apiurl + b64encode(packed).decode('utf8') + str(self.viewer_id)).encode('utf8')).hexdigest()
             self.headers['SHORT-UDID'] = pcrclient._encode(self.short_udid)
 
             if len(self.proxy) > 1:
                 async with aiohttp.ClientSession(headers=self.headers) as session:
+                    # 最终url由self.apiroot 和 apiurl构成
                     async with session.post(self.apiroot + apiurl, proxy=self.proxy, data=crypted) as resp:
                         response = await resp.read()
             else:
