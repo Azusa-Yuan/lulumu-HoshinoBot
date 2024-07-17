@@ -1,9 +1,7 @@
 import os
 import sqlite3
 
-import hoshino
-
-JJCHistory_DB_PATH = os.path.expanduser('~/.hoshino/jjchistory.db')
+JJCHistory_DB_PATH = os.path.expanduser('~/.lulumu/jjchistory.db')
 
 
 class JJCHistoryStorage:
@@ -85,6 +83,5 @@ limit(select count(*) FROM JJCHistoryStorage WHERE UID = ? and ITEM = ?) offset 
         try:
             conn.execute('delete from JJCHistoryStorage where UID = ?', (UID,))
             conn.commit()
-            hoshino.logger.info(f'移除ID:{UID}的竞技场记录')
         except Exception as e:
             raise Exception('移除记录异常')

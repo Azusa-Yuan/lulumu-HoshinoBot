@@ -9,6 +9,11 @@ import os
 import json
 import aiohttp
 import asyncio
+from copy import deepcopy
+from asyncio import Lock
+
+
+qlck = Lock()
 
 
 # 获取headers
@@ -135,21 +140,24 @@ class pcrclient:
             await asyncio.sleep(delay/1000)
         # 32个随机字节
         key = pcrclient.createkey()
+        
+        # 深拷贝 这样调用callapi不需要加锁
+        header = deepcopy(self.headers)
 
         try:
             if self.viewer_id is not None:
                 request['viewer_id'] = b64encode(self.encrypt(str(self.viewer_id).encode('utf8'), key))
             packed, crypted = self.pack(request, key)
-            self.headers['PARAM'] = sha1((self.udid + apiurl + b64encode(packed).decode('utf8') + str(self.viewer_id)).encode('utf8')).hexdigest()
-            self.headers['SHORT-UDID'] = pcrclient._encode(self.short_udid)
+            header['PARAM'] = sha1((self.udid + apiurl + b64encode(packed).decode('utf8') + str(self.viewer_id)).encode('utf8')).hexdigest()
+            header['SHORT-UDID'] = pcrclient._encode(self.short_udid)
 
             if len(self.proxy) > 1:
-                async with aiohttp.ClientSession(headers=self.headers) as session:
+                async with aiohttp.ClientSession(headers=header) as session:
                     # 最终url由self.apiroot 和 apiurl构成
                     async with session.post(self.apiroot + apiurl, proxy=self.proxy, data=crypted) as resp:
                         response = await resp.read()
             else:
-                async with aiohttp.ClientSession(headers=self.headers) as session:
+                async with aiohttp.ClientSession(headers=header) as session:
                     async with session.post(self.apiroot + apiurl, data=crypted) as resp:
                         response = await resp.read()
 
@@ -161,7 +169,8 @@ class pcrclient:
                 self.viewer_id = data_headers['viewer_id']
 
             if 'required_res_ver' in data_headers:
-                self.headers['RES-VER'] = data_headers['required_res_ver']
+                async with qlck:
+                    self.headers['RES-VER'] = data_headers['required_res_ver']
 
             data = response['data']
             if not noerr and 'server_error' in data:

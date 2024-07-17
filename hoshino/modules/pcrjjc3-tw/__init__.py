@@ -2,8 +2,6 @@ from json import load, dump
 from nonebot import get_bot, on_command, CommandSession
 from hoshino import priv
 from hoshino.typing import NoticeSession, MessageSegment, CQEvent
-from .pcrclient import pcrclient, ApiException, get_headers
-from asyncio import Lock
 from os.path import dirname, join, exists
 from copy import deepcopy
 from traceback import format_exc
